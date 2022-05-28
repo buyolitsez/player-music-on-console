@@ -1,14 +1,11 @@
 package com.example.test.UI
 
-import com.example.test.UI.Commands.NextUserCommand
-import com.example.test.UI.Commands.PauseUserCommand
-import com.example.test.UI.Commands.PlayUserCommand
-import com.example.test.UI.Commands.UserCommand
+import com.example.test.UI.Commands.*
 import com.example.test.logger
 import java.util.*
 
 class ConsoleUI : UI {
-    val scanner = Scanner(System.`in`)
+    private val scanner = Scanner(System.`in`)
 
     override fun init(musicFolder: String) {
         logger.debug { "Path to music:$musicFolder" }
@@ -27,7 +24,9 @@ class ConsoleUI : UI {
             "next" -> NextUserCommand()
             "play" -> PlayUserCommand()
             "pause" -> PauseUserCommand()
-            else -> throw Exception("Unknown cmd")
+            "update" -> UpdateUserCommand()
+            "exit" -> ExitUserCommand()
+            else -> UnknownUserCommand()
         }
     }
 }

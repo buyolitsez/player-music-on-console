@@ -10,6 +10,9 @@ import kotlin.random.nextUInt
 class FTPSongsHandler : SongsHandler {
     private var listOfSongs: List<File> = listOf()
     private val bufferFolder = File("/tmp/pmoc")
+    private val dataFolder = File("data/")
+    private val playlist = dataFolder.resolve("playlist")
+    private lateinit var dirPath: String
 
     init {
         if (bufferFolder.exists()) {
@@ -17,17 +20,32 @@ class FTPSongsHandler : SongsHandler {
             assert(bufferFolder.deleteRecursively())
         }
         assert(bufferFolder.mkdir())
+        dataFolder.mkdir()
+        if (playlist.exists()) {
+            val lines = playlist.readLines()
+            dirPath = lines[0]
+            logger.debug { "dirPath:$dirPath" }
+            logger.debug { "reading playlist:$playlist" }
+            listOfSongs = lines.drop(1).map {
+                File(it)
+            }
+        }
     }
 
     override fun loadSongFromDir(dirPath: String) {
+        this.dirPath = dirPath
         logger.debug { "start get from dir" }
-        listOfSongs = runBlocking { getListOfSongs(dirPath) }
+        listOfSongs = runBlocking(Dispatchers.Default) { getListOfSongs(dirPath) }
         logger.debug { "end get from dir" }
     }
 
     override fun getNextSong(): File {
         val res = listOfSongs[(Random.nextUInt() % listOfSongs.size.toUInt()).toInt()]
-        var copied = res.copyTo(bufferFolder.resolve(res.name))
+        val newFile = bufferFolder.resolve(res.absolutePath.substringAfter(dirPath).drop(1))
+        logger.debug { "New file: $newFile" }
+        newFile.mkdirs()
+        newFile.delete()
+        var copied = res.copyTo(newFile)
         logger.debug { "new song:$copied" }
         if (copied.extension == "flac") {
             logger.debug { "ooops flac!" }
@@ -41,7 +59,15 @@ class FTPSongsHandler : SongsHandler {
     }
 
     override fun close() {
+        logger.debug { "close FTPSongsHandler" }
         bufferFolder.deleteRecursively()
+
+        val builder = StringBuilder()
+        builder.append("$dirPath\n")
+        listOfSongs.forEach {
+            builder.append("${it.absolutePath}\n")
+        }
+        playlist.writeText(builder.toString())
     }
 
     private suspend fun getListOfSongs(dirPath: String, depthParallelize: Int = 2): List<File> = coroutineScope {

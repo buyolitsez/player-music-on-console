@@ -1,10 +1,7 @@
 package com.example.test
 
 
-import com.example.test.UI.Commands.NextUserCommand
-import com.example.test.UI.Commands.PauseUserCommand
-import com.example.test.UI.Commands.PlayUserCommand
-import com.example.test.UI.Commands.UserCommand
+import com.example.test.UI.Commands.*
 import com.example.test.UI.ConsoleUI
 import com.example.test.UI.UI
 import com.example.test.songHandler.FTPSongsHandler
@@ -23,14 +20,18 @@ lateinit var globalMediaPlayer: MediaPlayer
 
 val logger = KotlinLogging.logger {}
 
+fun tryToStop() {
+    try {
+        globalMediaPlayer.stop()
+    } catch (_: Exception) {
+    }
+}
+
 fun genNew(songsHandler: SongsHandler): MediaPlayer {
     logger.debug { "gen new called!" }
     val mediaPlayer = MediaPlayer(Media(songsHandler.getNextSong().toURI().toString()))
     mediaPlayer.onEndOfMedia = Runnable {
-        try {
-            globalMediaPlayer.stop()
-        } catch (_: Exception) {
-        }
+        tryToStop()
         globalMediaPlayer = genNew(songsHandler)
         globalMediaPlayer.play()
     }
@@ -42,7 +43,6 @@ fun main() {
     Platform.startup {
         val dirPath = "/run/user/1000/gvfs/ftp:host=164.92.142.157/additional/Music"
         val songsHandler: SongsHandler = FTPSongsHandler()
-        songsHandler.loadSongFromDir(dirPath)
         val ui: UI = ConsoleUI()
         GlobalScope.launch {
             logger.debug { "player started!" }
@@ -57,14 +57,19 @@ fun main() {
                     globalMediaPlayer.pause()
                 } else if (cmd is NextUserCommand) {
                     logger.debug { "next activated" }
-                    try {
-                        globalMediaPlayer.stop()
-                    } catch (_: Exception) {
-                    }
+                    tryToStop()
                     globalMediaPlayer = genNew(songsHandler)
                     globalMediaPlayer.play()
+                } else if (cmd is UpdateUserCommand) {
+                    songsHandler.loadSongFromDir(dirPath)
+                } else if (cmd is ExitUserCommand) {
+                    tryToStop()
+                    break
+                } else {
+                    assert(cmd is UnknownUserCommand)
                 }
             }
+            songsHandler.close()
         }
     }
 }
