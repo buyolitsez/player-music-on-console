@@ -1,82 +1,68 @@
 package com.example.test
 
 
+import com.example.test.UI.Commands.NextUserCommand
+import com.example.test.UI.Commands.PauseUserCommand
+import com.example.test.UI.Commands.PlayUserCommand
+import com.example.test.UI.Commands.UserCommand
+import com.example.test.UI.ConsoleUI
+import com.example.test.UI.UI
+import com.example.test.songHandler.FTPSongsHandler
+import com.example.test.songHandler.SongsHandler
 import javafx.application.Platform
 import javafx.scene.media.Media
 import javafx.scene.media.MediaPlayer
-import kotlinx.coroutines.*
-import java.io.File
-import java.lang.Thread.sleep
-import java.util.*
-import kotlin.concurrent.thread
-import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Runnable
+import kotlinx.coroutines.launch
+import mu.KotlinLogging
 import kotlin.time.ExperimentalTime
-import kotlin.time.measureTime
 
-suspend fun getListOfSongs(dirPath: String, depthParallelize: Int): List<File> = coroutineScope {
-    if (!File(dirPath).isDirectory) {
-        listOf(File(dirPath))
-    } else if (depthParallelize <= 0) {
-        File(dirPath).walk().toList()
-    } else {
-        val listJobs = mutableListOf<Deferred<List<File>>>()
-        val totalFiles = mutableListOf<File>()
-        File(dirPath).walk().maxDepth(depthParallelize).forEach { file ->
-            val depthDir = dirPath.count { it == '/' }
-            if (file.isDirectory && file.absolutePath.count { it == '/' } == depthDir + depthParallelize) {
-                listJobs.add(async {
-                    val currDir = file
-                    getListOfSongs(currDir.absolutePath, depthParallelize - 1)
-                })
-            } else {
-                totalFiles.add(file)
-            }
+lateinit var globalMediaPlayer: MediaPlayer
+
+val logger = KotlinLogging.logger {}
+
+fun genNew(songsHandler: SongsHandler): MediaPlayer {
+    logger.debug { "gen new called!" }
+    val mediaPlayer = MediaPlayer(Media(songsHandler.getNextSong().toURI().toString()))
+    mediaPlayer.onEndOfMedia = Runnable {
+        try {
+            globalMediaPlayer.stop()
+        } catch (_: Exception) {
         }
-        totalFiles.addAll(listJobs.awaitAll().flatten())
-        totalFiles
+        globalMediaPlayer = genNew(songsHandler)
+        globalMediaPlayer.play()
     }
+    return mediaPlayer
 }
 
 @OptIn(ExperimentalTime::class, DelicateCoroutinesApi::class)
 fun main() {
     Platform.startup {
-        val time = measureTime {
-            runBlocking {
-                val dirPath = "/run/user/1000/gvfs/ftp:host=164.92.142.157/additional/Music"
-//        val dirPath = "1.mp3"
-                assert(File(dirPath).exists())
-                val depthParallelize = 2
-                val listOfSongs = getListOfSongs(dirPath, depthParallelize)
-                println("Total songs ${listOfSongs.size}")
-            }
-        }
-        print("Takes $time")
-        println("hmmmm")
-        val bip = "1.mp3"
-//        val bip = "/run/user/1000/gvfs/ftp:host=164.92.142.157/additional/Music/1.mp3"
-        val hit = Media(File(bip).toURI().toString())
-        println("1")
-        val mediaPlayer = MediaPlayer(hit)
-        println("2")
-        val scanner = Scanner(System.`in`)
-        println("ready!")
+        val dirPath = "/run/user/1000/gvfs/ftp:host=164.92.142.157/additional/Music"
+        val songsHandler: SongsHandler = FTPSongsHandler()
+        songsHandler.loadSongFromDir(dirPath)
+        val ui: UI = ConsoleUI()
         GlobalScope.launch {
-            var cmd = ""
+            logger.debug { "player started!" }
+            var cmd: UserCommand
             while (true) {
-                cmd = scanner.next()
-                if (cmd == "play") {
-                    println("start play")
-                    mediaPlayer.play()
-                    println("after play")
-                } else if (cmd == "pause") {
-                    println("pause play")
-                    mediaPlayer.pause()
-                } else if (cmd == "stop") {
-                    println("stop play")
-                    mediaPlayer.stop()
-                } else if (cmd == "vol") {
-                    println("set volume:")
-                    mediaPlayer.volume = scanner.nextInt() / 100.0
+                cmd = ui.getUserCmd()
+                if (cmd is PlayUserCommand) {
+                    logger.debug { "start play" }
+                    globalMediaPlayer.play()
+                } else if (cmd is PauseUserCommand) {
+                    logger.debug { "pause play" }
+                    globalMediaPlayer.pause()
+                } else if (cmd is NextUserCommand) {
+                    logger.debug { "next activated" }
+                    try {
+                        globalMediaPlayer.stop()
+                    } catch (_: Exception) {
+                    }
+                    globalMediaPlayer = genNew(songsHandler)
+                    globalMediaPlayer.play()
                 }
             }
         }
