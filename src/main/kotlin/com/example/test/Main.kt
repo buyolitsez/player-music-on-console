@@ -9,12 +9,8 @@ import com.example.test.songHandler.SongsHandler
 import javafx.application.Platform
 import javafx.scene.media.Media
 import javafx.scene.media.MediaPlayer
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Runnable
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import mu.KotlinLogging
-import kotlin.time.ExperimentalTime
 
 lateinit var globalMediaPlayer: MediaPlayer
 
@@ -27,18 +23,18 @@ fun tryToStop() {
     }
 }
 
-fun genNew(songsHandler: SongsHandler): MediaPlayer {
+suspend fun genNew(songsHandler: SongsHandler): MediaPlayer {
     logger.debug { "gen new called!" }
     val mediaPlayer = MediaPlayer(Media(songsHandler.getNextSong().toURI().toString()))
     mediaPlayer.onEndOfMedia = Runnable {
         tryToStop()
-        globalMediaPlayer = genNew(songsHandler)
+        globalMediaPlayer = runBlocking { genNew(songsHandler) }
         globalMediaPlayer.play()
     }
     return mediaPlayer
 }
 
-@OptIn(ExperimentalTime::class, DelicateCoroutinesApi::class)
+@OptIn(DelicateCoroutinesApi::class)
 fun main() {
     Platform.startup {
         val dirPath = "/run/user/1000/gvfs/ftp:host=164.92.142.157/additional/Music"
@@ -62,11 +58,18 @@ fun main() {
                     globalMediaPlayer.play()
                 } else if (cmd is UpdateUserCommand) {
                     songsHandler.loadSongFromDir(dirPath)
+                } else if (cmd is DeleteCurrentSongUserCommand) {
+                    logger.debug { "Delete command detected" }
+                    tryToStop()
+                    songsHandler.deleteCurrentSong()
+                    globalMediaPlayer = genNew(songsHandler)
+                    globalMediaPlayer.play()
                 } else if (cmd is ExitUserCommand) {
                     tryToStop()
                     break
                 } else {
                     assert(cmd is UnknownUserCommand)
+                    logger.debug { "Unknown command" }
                 }
             }
             songsHandler.close()

@@ -25,6 +25,7 @@ class ConsoleUI : UI {
             "play" -> PlayUserCommand()
             "pause" -> PauseUserCommand()
             "update" -> UpdateUserCommand()
+            "delete" -> DeleteCurrentSongUserCommand()
             "exit" -> ExitUserCommand()
             else -> UnknownUserCommand()
         }
