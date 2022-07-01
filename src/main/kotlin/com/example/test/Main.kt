@@ -42,9 +42,8 @@ fun main() {
         val ui: UI = ConsoleUI()
         GlobalScope.launch {
             logger.debug { "player started!" }
-            var cmd: UserCommand
+            var cmd: UserCommand = NextUserCommand()
             while (true) {
-                cmd = ui.getUserCmd()
                 if (cmd is PlayUserCommand) {
                     logger.debug { "start play" }
                     globalMediaPlayer.play()
@@ -71,6 +70,7 @@ fun main() {
                     assert(cmd is UnknownUserCommand)
                     logger.debug { "Unknown command" }
                 }
+                cmd = ui.getUserCmd()
             }
             songsHandler.close()
         }
