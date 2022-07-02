@@ -5,7 +5,7 @@ import com.example.test.songHandler.songLoader.SongLoader
 import com.example.test.songHandler.songLoader.SongLoaderBuffered
 import java.io.File
 
-class FTPSongsHandler : SongsHandler {
+class FTPSongsHandler(pathToDir: String) : SongsHandler {
     private var listOfSongs: List<File> = listOf()
     private val dataFolder = File("data/")
     private val playlist = dataFolder.resolve("playlist")
@@ -14,6 +14,7 @@ class FTPSongsHandler : SongsHandler {
 
     init {
         dataFolder.mkdir()
+        var playlistReaded = false
         if (playlist.exists()) {
             val lines = playlist.readLines()
             dirPath = lines[0]
@@ -23,12 +24,19 @@ class FTPSongsHandler : SongsHandler {
                 File(it)
             }
             songLoader = SongLoaderBuffered(File(dirPath), listOfSongs)
+            playlistReaded = listOfSongs.isNotEmpty()
+        }
+        if (!playlistReaded) {
+            logger.debug { "No playlist was read, starting scanning for songs" }
+            dirPath = pathToDir
+            loadSongFromDir(dirPath)
         }
     }
 
     override fun loadSongFromDir(dirPath: String) {
         this.dirPath = dirPath
         songLoader = SongLoaderBuffered(File(dirPath))
+        this.listOfSongs = songLoader.songs
     }
 
     override suspend fun getNextSong(): File {
@@ -46,6 +54,7 @@ class FTPSongsHandler : SongsHandler {
         val builder = StringBuilder()
         builder.append("$dirPath\n")
         listOfSongs.forEach {
+            logger.debug { "Adding song ${it.absolutePath} to playlist" }
             builder.append("${it.absolutePath}\n")
         }
         playlist.writeText(builder.toString())
