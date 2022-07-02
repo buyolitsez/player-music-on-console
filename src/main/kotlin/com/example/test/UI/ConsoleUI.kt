@@ -26,6 +26,7 @@ class ConsoleUI : UI {
             "pause" -> PauseUserCommand()
             "update" -> UpdateUserCommand()
             "delete" -> DeleteCurrentSongUserCommand()
+            "volume" -> ChangeVolumeUserCommand(scanner.nextInt())
             "exit" -> ExitUserCommand()
             else -> UnknownUserCommand()
         }

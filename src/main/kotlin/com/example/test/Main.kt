@@ -37,8 +37,9 @@ suspend fun genNew(songsHandler: SongsHandler): MediaPlayer {
 @OptIn(DelicateCoroutinesApi::class)
 fun main() {
     Platform.startup {
-        val dirPath = "/run/user/1000/gvfs/ftp:host=164.92.142.157/additional/Music"
-        val songsHandler: SongsHandler = FTPSongsHandler()
+//        val dirPath = "/run/user/1000/gvfs/ftp:host=164.92.142.157/additional/Music"
+        val dirPath = "/home/buyolitsez/Music"
+        val songsHandler: SongsHandler = FTPSongsHandler(dirPath)
         val ui: UI = ConsoleUI()
         GlobalScope.launch {
             logger.debug { "player started!" }
@@ -63,6 +64,10 @@ fun main() {
                     songsHandler.deleteCurrentSong()
                     globalMediaPlayer = genNew(songsHandler)
                     globalMediaPlayer.play()
+                } else if (cmd is ChangeVolumeUserCommand) {
+                    val changeVolumeUserCommand = cmd
+                    logger.debug { "Changing volume to ${changeVolumeUserCommand.newVolume}" }
+                    globalMediaPlayer.volume = changeVolumeUserCommand.newVolume
                 } else if (cmd is ExitUserCommand) {
                     tryToStop()
                     break
