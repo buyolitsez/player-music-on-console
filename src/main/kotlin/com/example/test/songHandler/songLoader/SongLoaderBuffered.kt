@@ -4,10 +4,9 @@ import com.example.test.logger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
 import kotlin.random.nextUInt
 
@@ -79,6 +78,7 @@ class SongLoaderBuffered : SongLoader {
         var copied = buffer.downloadSong()
         logger.debug { "new song:$copied" }
         if (copied.extension == "flac") { // TODO
+            assert(false)
             logger.debug { "ooops flac!" }
             val toMp3 = File(copied.absolutePath.replace(".flac", ".mp3"))
             Runtime.getRuntime()
@@ -90,43 +90,42 @@ class SongLoaderBuffered : SongLoader {
     }
 
     private inner class Buffer {
-        private val downloadedSongs = mutableListOf<File>()
         private val songsChannel = Channel<File>(UNLIMITED)
-        private val BUFFER_SIZE = 5
+        private val songsInChannel = AtomicInteger(0)
+        private val bufferSize = 5
         var currentSong: File? = null
-        val mutex = Mutex()
+        private var previousSong: File? = null
 
         @OptIn(DelicateCoroutinesApi::class)
         suspend fun downloadSong(): File {
             GlobalScope.launch {
-                mutex.withLock {
-                    while (downloadedSongs.size < BUFFER_SIZE) {
-                        val res = songs[(Random.nextUInt() % songs.size.toUInt()).toInt()]
-                        val newFile =
-                            bufferFolder.resolve(res.absolutePath.substringAfter(musicFolder.absolutePath).drop(1))
-                        newFile.mkdirs()
-                        newFile.delete()
-                        logger.debug { "Downloading song:$newFile!\ncurrent size buffer:${downloadedSongs.size}" }
-                        val downloaded = res.copyTo(newFile)
-                        downloadedSongs.add(downloaded)
-                        songsChannel.send(downloaded)
-                    }
+                while (songsInChannel.get() < bufferSize) {
+                    val res = songs[(Random.nextUInt() % songs.size.toUInt()).toInt()]
+                    val newFile =
+                        bufferFolder.resolve(res.absolutePath.substringAfter(musicFolder.absolutePath).drop(1))
+                    newFile.mkdirs()
+                    newFile.delete()
+                    songsInChannel.incrementAndGet()
+                    logger.debug { "Downloading song:$newFile!\ncurrent size buffer:${songsInChannel.get()}" }
+                    val downloaded = res.copyTo(newFile)
+                    songsChannel.send(downloaded)
                 }
-                deleteLastDownloadedSong()
             }
             val newSong = songsChannel.receive()
             currentSong = musicFolder.resolve(newSong.absolutePath.substringAfter(bufferFolder.absolutePath).drop(1))
+            deleteSong(newSong)
+            songsInChannel.decrementAndGet()
             return newSong
         }
 
-        private suspend fun deleteLastDownloadedSong() {
-            mutex.withLock {
-                while (downloadedSongs.size >= BUFFER_SIZE) {
-                    val toDelete = downloadedSongs[0]
-                    logger.debug { "Deleting song:$toDelete, current size${downloadedSongs.size}" }
-                    toDelete.delete()
-                    downloadedSongs.removeAt(0)
+        @OptIn(DelicateCoroutinesApi::class)
+        private fun deleteSong(song: File) {
+            GlobalScope.launch {
+                previousSong?.let {
+                    logger.debug { "Deleting song:$it" }
+                    it.delete()
                 }
+                previousSong = song
             }
         }
     }
