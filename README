@@ -1,0 +1,19 @@
+## PMOC
+
+# Build
+
+with intelij :)
+
+# Run
+
+`java -jar out/artifacts/test_jar/test.jar`
+
+# Commands
+
+1. `next` - skip current song
+2. `play` - resume playing
+3. `pause` - pause playing
+4. `update` - update playlist
+5. `delete` - delete current song
+6. `volume X` - set current volume to `X`, where `0 <= X <= 100`
+7. `exit` - exit player
