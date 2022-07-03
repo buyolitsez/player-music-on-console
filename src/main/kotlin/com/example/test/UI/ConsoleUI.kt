@@ -1,22 +1,35 @@
 package com.example.test.UI
 
 import com.example.test.UI.Commands.*
-import com.example.test.logger
 import java.util.*
 
 class ConsoleUI : UI {
     private val scanner = Scanner(System.`in`)
+    private val red = "\u001b[31m"
+    private val resetColor = "\u001b[0m"
+
+    private fun printlnRed(message: String) {
+        println(red + message + resetColor)
+    }
 
     override fun init(musicFolder: String) {
-        logger.debug { "Path to music:$musicFolder" }
+        printlnRed("Path to music:$musicFolder")
     }
 
     override fun songChanged(newSong: String) {
-        logger.debug { "current song:$newSong" }
+        printlnRed("Current song:$newSong")
     }
 
-    override fun songPauses() {
-        logger.debug { "song paused!" }
+    override fun songPaused() {
+        printlnRed("Song paused!")
+    }
+
+    override fun continuePlaying() {
+        printlnRed("Continue playing!")
+    }
+
+    override fun volumeChanged(newVolume: Int) {
+        printlnRed("New volume $newVolume!")
     }
 
     override fun getUserCmd(): UserCommand {
