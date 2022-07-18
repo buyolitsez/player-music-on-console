@@ -1,10 +1,23 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10'
+        classpath 'com.jakewharton.mosaic:mosaic-gradle-plugin:0.1.0'
+    }
+}
+
 plugins {
     id 'java'
     id 'application'
-    id 'org.jetbrains.kotlin.jvm' version '1.5.31'
+    id 'org.jetbrains.kotlin.jvm' version '1.6.10'
     id 'org.openjfx.javafxplugin' version '0.0.10'
     id 'org.beryx.jlink' version '2.24.1'
 }
+
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'com.jakewharton.mosaic'
 
 group 'com.example'
 version '1.0-SNAPSHOT'
@@ -17,8 +30,8 @@ ext {
     junitVersion = '5.8.1'
 }
 
-sourceCompatibility = '17'
-targetCompatibility = '17'
+sourceCompatibility = '11'
+targetCompatibility = '11'
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
@@ -41,6 +54,7 @@ javafx {
 }
 
 dependencies {
+    implementation "androidx.compose.compiler:compiler:1.0.0-beta08"
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")
