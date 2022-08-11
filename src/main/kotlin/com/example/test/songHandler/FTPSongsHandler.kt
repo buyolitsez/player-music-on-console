@@ -65,9 +65,9 @@ class FTPSongsHandler(pathToDir: String) : SongsHandler {
         val builder = StringBuilder()
         builder.append("$dirPath\n")
         listOfSongs.forEach {
-            logger.debug { "Adding song ${it.absolutePath} to playlist" }
             builder.append("${it.absolutePath}\n")
         }
+        logger.debug { "Saved ${listOfSongs.size} songs" }
         playlist.writeText(builder.toString())
     }
 }
