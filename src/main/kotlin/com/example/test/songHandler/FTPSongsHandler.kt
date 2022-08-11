@@ -44,7 +44,12 @@ class FTPSongsHandler(pathToDir: String) : SongsHandler {
     }
 
     override suspend fun getNextSong(): File {
-        return songLoader.getNextSong()
+        var nextSong = songLoader.getNextSong()
+        while (!nextSong.exists()) {
+            logger.warn { "Tried to load non-existing song $nextSong" }
+            nextSong = songLoader.getNextSong()
+        }
+        return nextSong
     }
 
     override fun deleteCurrentSong() {
