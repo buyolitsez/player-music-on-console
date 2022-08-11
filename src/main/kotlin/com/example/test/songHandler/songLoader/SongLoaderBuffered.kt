@@ -58,10 +58,12 @@ private suspend fun getListOfSongs(directory: File, depthParallelize: Int = 2): 
 class SongLoaderBuffered : SongLoader {
     private val bufferFolder = File("/tmp/pmoc")
     private val buffer = Buffer()
+    private val favoritesFolder = File("/home/buyolitsez/Music/favorites")
 
     init {
         logger.debug { "Init part" }
         clearFolder(bufferFolder)
+        favoritesFolder.mkdirs()
     }
 
     constructor(musicFolder: File, songs: List<File>) : super(musicFolder, songs) {
@@ -89,6 +91,25 @@ class SongLoaderBuffered : SongLoader {
         return copied
     }
 
+    /**
+     * exchangeFolder("abc/a.mp3", "abc", "kek") = "kek/a.mp3"
+     */
+    private fun exchangeFolder(song: File, from: File, to: File): File {
+        return to.resolve(song.absolutePath.substringAfter(from.absolutePath).drop(1))
+    }
+
+    override suspend fun addToFavorite() {
+        val song = buffer.currentSong
+        logger.debug { "Add song $song to favorites" }
+        require(song != null) { "Song is null!" }
+        val songNewPlace = exchangeFolder(song, musicFolder, favoritesFolder)
+        if (!songNewPlace.exists()) {
+            songNewPlace.mkdirs()
+            songNewPlace.delete()
+            song.copyTo(songNewPlace)
+        }
+    }
+
     private inner class Buffer {
         private val songsChannel = Channel<File>(UNLIMITED)
         private val songsInChannel = AtomicInteger(0)
@@ -101,8 +122,7 @@ class SongLoaderBuffered : SongLoader {
             GlobalScope.launch {
                 while (songsInChannel.get() < bufferSize) {
                     val res = songs[(Random.nextUInt() % songs.size.toUInt()).toInt()]
-                    val newFile =
-                        bufferFolder.resolve(res.absolutePath.substringAfter(musicFolder.absolutePath).drop(1))
+                    val newFile = exchangeFolder(res, musicFolder, bufferFolder)
                     newFile.mkdirs()
                     newFile.delete()
                     songsInChannel.incrementAndGet()
@@ -112,7 +132,7 @@ class SongLoaderBuffered : SongLoader {
                 }
             }
             val newSong = songsChannel.receive()
-            currentSong = musicFolder.resolve(newSong.absolutePath.substringAfter(bufferFolder.absolutePath).drop(1))
+            currentSong = exchangeFolder(newSong, bufferFolder, musicFolder)
             deleteSong(newSong)
             songsInChannel.decrementAndGet()
             return newSong

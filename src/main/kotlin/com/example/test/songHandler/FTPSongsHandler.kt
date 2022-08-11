@@ -3,6 +3,9 @@ package com.example.test.songHandler
 import com.example.test.logger
 import com.example.test.songHandler.songLoader.SongLoader
 import com.example.test.songHandler.songLoader.SongLoaderBuffered
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.File
 
 class FTPSongsHandler(pathToDir: String) : SongsHandler {
@@ -45,6 +48,13 @@ class FTPSongsHandler(pathToDir: String) : SongsHandler {
 
     override fun deleteCurrentSong() {
         songLoader.deleteCurrentSong()
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    override fun addToFavorite() {
+        GlobalScope.launch {
+            songLoader.addToFavorite()
+        }
     }
 
     override fun close() {
