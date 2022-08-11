@@ -1,5 +1,6 @@
 package com.example.test.songHandler
 
+import com.example.test.config
 import com.example.test.logger
 import com.example.test.songHandler.songLoader.SongLoader
 import com.example.test.songHandler.songLoader.SongLoaderBuffered
@@ -10,8 +11,8 @@ import java.io.File
 
 class FTPSongsHandler(pathToDir: String) : SongsHandler {
     private var listOfSongs: List<File> = listOf()
-    private val dataFolder = File("data/")
-    private val playlist = dataFolder.resolve("playlist")
+    private val dataFolder = File(config.dataFolder)
+    private val playlist = dataFolder.resolve(config.playlistName)
     private lateinit var songLoader: SongLoader
     private lateinit var dirPath: String
 

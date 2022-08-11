@@ -4,6 +4,8 @@ package com.example.test
 import com.example.test.UI.Commands.*
 import com.example.test.UI.ConsoleUI
 import com.example.test.UI.UI
+import com.example.test.config.Config
+import com.example.test.config.ConfigReader
 import com.example.test.songHandler.FTPSongsHandler
 import com.example.test.songHandler.SongsHandler
 import javafx.application.Platform
@@ -38,13 +40,16 @@ suspend fun genNew(songsHandler: SongsHandler): MediaPlayer {
     return mediaPlayer
 }
 
+lateinit var config: Config
+
 @OptIn(DelicateCoroutinesApi::class)
 fun main() {
     Platform.startup {
-        val dirPath = "/run/user/1000/gvfs/ftp:host=164.92.142.157/additional/Music"
-//        val dirPath = "/home/buyolitsez/Music"
-        ui.init(dirPath)
-        val songsHandler: SongsHandler = FTPSongsHandler(dirPath)
+        val pathToConfig = "data/config.json"
+        config = ConfigReader(pathToConfig).read()
+        logger.debug { "Config: $config" }
+        ui.init(config.pathToMusicFolder)
+        val songsHandler: SongsHandler = FTPSongsHandler(config.pathToMusicFolder)
         GlobalScope.launch {
             logger.debug { "player started!" }
             var cmd: UserCommand = NextUserCommand()
@@ -63,7 +68,7 @@ fun main() {
                     globalMediaPlayer = genNew(songsHandler)
                     globalMediaPlayer.play()
                 } else if (cmd is UpdateUserCommand) {
-                    songsHandler.loadSongFromDir(dirPath)
+                    songsHandler.loadSongFromDir(config.pathToMusicFolder)
                 } else if (cmd is DeleteCurrentSongUserCommand) {
                     logger.debug { "Delete command detected" }
                     tryToStop()

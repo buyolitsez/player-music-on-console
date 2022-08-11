@@ -1,5 +1,6 @@
 package com.example.test.songHandler.songLoader
 
+import com.example.test.config
 import com.example.test.logger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -56,9 +57,9 @@ private suspend fun getListOfSongs(directory: File, depthParallelize: Int = 2): 
 }
 
 class SongLoaderBuffered : SongLoader {
-    private val bufferFolder = File("/tmp/pmoc")
+    private val bufferFolder = File(config.bufferFolder)
     private val buffer = Buffer()
-    private val favoritesFolder = File("/home/buyolitsez/Music/favorites")
+    private val favoritesFolder = File(config.favoritesFolder)
 
     init {
         logger.debug { "Init part" }
