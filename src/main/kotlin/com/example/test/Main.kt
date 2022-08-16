@@ -13,6 +13,7 @@ import javafx.scene.media.Media
 import javafx.scene.media.MediaPlayer
 import kotlinx.coroutines.*
 import mu.KotlinLogging
+import java.io.File
 import kotlin.system.exitProcess
 
 lateinit var globalMediaPlayer: MediaPlayer
@@ -48,6 +49,17 @@ fun main() {
     val pathToConfig = "data/config.json"
     config = ConfigReader(pathToConfig).read()
     logger.debug { "Config: $config" }
+
+    if (config.mountFTP) { // TODO not working
+        File(config.mountFolder).mkdirs()
+        Runtime.getRuntime()
+            .exec("umount ${config.mountFolder}")
+        logger.info { "mounting folder ${config.pathToMusicFolder}" }
+        Runtime.getRuntime()
+            .exec("curlftpfs ${config.pathToMusicFolder} ${config.mountFolder} -o user=${config.username}:${config.password}")
+        config.pathToMusicFolder = config.mountFolder
+    }
+
     ui.init(config.pathToMusicFolder)
     val songsHandler: SongsHandler = FTPSongsHandler(config.pathToMusicFolder)
 
