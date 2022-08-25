@@ -43,7 +43,7 @@ private suspend fun getListOfSongs(directory: File, depthParallelize: Int = 2): 
             val depthDir = directory.absolutePath.count { it == '/' }
             if (file.isDirectory && file.absolutePath.count { it == '/' } == depthDir + depthParallelize) {
                 listJobs.add(async {
-                    getListOfSongs(file, depthParallelize - 1)
+                    getListOfSongs(file, 0)
                 })
             } else {
                 if (isSong(file)) {
@@ -74,7 +74,7 @@ class SongLoaderBuffered : SongLoader {
     constructor(musicFolder: File) : super(musicFolder) {
         logger.debug { "Build songs from directory:$musicFolder" }
         songs = runBlocking(Dispatchers.Default) { getListOfSongs(musicFolder) }
-        logger.debug { "End build songs from dir" }
+        logger.debug { "End build songs from dir, found ${songs.size} songs" }
     }
 
     override suspend fun getNextSong(): File {
