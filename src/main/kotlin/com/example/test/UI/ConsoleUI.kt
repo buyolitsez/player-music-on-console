@@ -1,6 +1,7 @@
 package com.example.test.UI
 
 import com.example.test.UI.Commands.*
+import javafx.scene.media.MediaPlayer
 import java.util.*
 
 class ConsoleUI : UI {
@@ -16,8 +17,18 @@ class ConsoleUI : UI {
         printlnRed("Path to music:$musicFolder")
     }
 
-    override fun songChanged(newSong: String) {
-        printlnRed("Current song:$newSong")
+    override fun songChanged(newSong: String, mediaPlayer: MediaPlayer) {
+        val metadata = mediaPlayer.media.metadata
+        val artist = metadata["artist"]
+        val year = metadata["year"]
+        val album = metadata["album"]
+        val genre = metadata["genre"]
+        val title = metadata["title"]
+        metadata.forEach { t, u ->
+            println(t + "#$#" + u)
+        }
+        printlnRed(newSong)
+        printlnRed("$artist - $title | $album | $year | $genre")
     }
 
     override fun songPaused() {

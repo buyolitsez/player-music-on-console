@@ -33,12 +33,12 @@ suspend fun genNew(songsHandler: SongsHandler): MediaPlayer {
     logger.debug { "gen new called!" }
     val newSong = songsHandler.getNextSong()
     val mediaPlayer = MediaPlayer(Media(newSong.toURI().toString()))
+    ui.songChanged(newSong.absolutePath, mediaPlayer)
     mediaPlayer.onEndOfMedia = Runnable {
         tryToStop()
         globalMediaPlayer = runBlocking { genNew(songsHandler) }
         globalMediaPlayer.play()
     }
-    ui.songChanged(newSong.absolutePath)
     return mediaPlayer
 }
 
