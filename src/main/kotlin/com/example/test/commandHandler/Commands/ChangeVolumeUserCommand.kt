@@ -1,4 +1,4 @@
-package com.example.test.UI.Commands
+package com.example.test.commandHandler.Commands
 
 class ChangeVolumeUserCommand() : UserCommand {
     var newVolume: Int = 100

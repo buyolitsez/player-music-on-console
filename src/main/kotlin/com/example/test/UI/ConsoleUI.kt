@@ -1,11 +1,10 @@
 package com.example.test.UI
 
-import com.example.test.UI.Commands.*
+import com.example.test.commandHandler.CommandHandler
+import com.example.test.commandHandler.Commands.UserCommand
 import javafx.scene.media.MediaPlayer
-import java.util.*
 
 class ConsoleUI : UI {
-    private val scanner = Scanner(System.`in`)
     private val red = "\u001b[31m"
     private val resetColor = "\u001b[0m"
 
@@ -44,16 +43,6 @@ class ConsoleUI : UI {
     }
 
     override fun getUserCmd(): UserCommand {
-        return when (scanner.next()) {
-            "next" -> NextUserCommand()
-            "play" -> PlayUserCommand()
-            "pause" -> PauseUserCommand()
-            "update" -> UpdateUserCommand()
-            "delete" -> DeleteCurrentSongUserCommand()
-            "volume" -> ChangeVolumeUserCommand(scanner.nextInt())
-            "add" -> AddToFavoriteUserCommand()
-            "exit" -> ExitUserCommand()
-            else -> UnknownUserCommand()
-        }
+        return CommandHandler.getInstance().getUserCommand()
     }
 }

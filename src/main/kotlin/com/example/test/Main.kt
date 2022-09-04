@@ -1,12 +1,10 @@
 package com.example.test
 
 
-import com.example.test.UI.Commands.*
-import com.example.test.UI.ConsoleUI
 import com.example.test.UI.UI
+import com.example.test.commandHandler.Commands.*
 import com.example.test.config.Config
 import com.example.test.config.ConfigReader
-import com.example.test.songHandler.FTPSongsHandler
 import com.example.test.songHandler.SongsHandler
 import javafx.application.Platform
 import javafx.scene.media.Media
@@ -20,8 +18,6 @@ lateinit var globalMediaPlayer: MediaPlayer
 
 val logger = KotlinLogging.logger {}
 
-val ui: UI = ConsoleUI()
-
 fun tryToStop() {
     try {
         globalMediaPlayer.stop()
@@ -33,7 +29,7 @@ suspend fun genNew(songsHandler: SongsHandler): MediaPlayer {
     logger.debug { "gen new called!" }
     val newSong = songsHandler.getNextSong()
     val mediaPlayer = MediaPlayer(Media(newSong.toURI().toString()))
-    ui.songChanged(newSong.absolutePath, mediaPlayer)
+    UI.getInstance().songChanged(newSong.absolutePath, mediaPlayer)
     mediaPlayer.onEndOfMedia = Runnable {
         tryToStop()
         globalMediaPlayer = runBlocking { genNew(songsHandler) }
@@ -59,9 +55,9 @@ fun main() {
             .exec("curlftpfs ${config.pathToMusicFolder} ${config.mountFolder} -o user=${config.username}:${config.password}")
         config.pathToMusicFolder = config.mountFolder
     }
-
+    val ui = UI.getInstance()
     ui.init(config.pathToMusicFolder)
-    val songsHandler: SongsHandler = FTPSongsHandler(config.pathToMusicFolder)
+    val songsHandler: SongsHandler = SongsHandler.getInstance(config.pathToMusicFolder)
 
     Runtime.getRuntime().addShutdownHook(Thread(Runnable {
         logger.debug { "Shutdown" }

@@ -1,3 +1,3 @@
-package com.example.test.UI.Commands
+package com.example.test.commandHandler.Commands
 
 class DeleteCurrentSongUserCommand : UserCommand {}
