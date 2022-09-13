@@ -123,6 +123,10 @@ class SongLoaderBuffered : SongLoader {
             GlobalScope.launch {
                 while (songsInChannel.get() < bufferSize) {
                     val res = songs[(Random.nextUInt() % songs.size.toUInt()).toInt()]
+					if (!res.exists()) {
+						logger.debug { "Song $res not exists, skip"}
+						continue;
+					}
                     val newFile = exchangeFolder(res, musicFolder, bufferFolder)
                     newFile.mkdirs()
                     newFile.delete()
