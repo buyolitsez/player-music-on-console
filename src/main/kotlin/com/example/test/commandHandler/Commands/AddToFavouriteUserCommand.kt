@@ -1,3 +1,3 @@
 package com.example.test.commandHandler.Commands
 
-class AddToFavoriteUserCommand : UserCommand {}
+class AddToFavouriteUserCommand : UserCommand {}

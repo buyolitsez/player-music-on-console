@@ -1,8 +1,8 @@
 package com.example.test.UI
 
+import SongPlayer
 import com.example.test.commandHandler.CommandHandler
 import com.example.test.commandHandler.Commands.UserCommand
-import javafx.scene.media.MediaPlayer
 
 class ConsoleUI : UI {
     private val red = "\u001b[31m"
@@ -16,8 +16,8 @@ class ConsoleUI : UI {
         printlnRed("Path to music:$musicFolder")
     }
 
-    override fun songChanged(newSong: String, mediaPlayer: MediaPlayer) {
-        val metadata = mediaPlayer.media.metadata
+    override fun songChanged(newSong: String, songPlayer: SongPlayer) {
+        val metadata = songPlayer.getMetadata()
         val artist = metadata["artist"]
         val year = metadata["year"]
         val album = metadata["album"]

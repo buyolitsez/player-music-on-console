@@ -1,7 +1,7 @@
 package com.example.test.UI
 
+import SongPlayer
 import com.example.test.commandHandler.Commands.UserCommand
-import javafx.scene.media.MediaPlayer
 
 interface UI {
     companion object {
@@ -17,7 +17,7 @@ interface UI {
     /**
      * Calls on each song's changes(not after resume or pause)
      */
-    fun songChanged(newSong: String, mediaPlayer: MediaPlayer)
+    fun songChanged(newSong: String, songPlayer: SongPlayer)
 
     /**
      * Calls on songs pause

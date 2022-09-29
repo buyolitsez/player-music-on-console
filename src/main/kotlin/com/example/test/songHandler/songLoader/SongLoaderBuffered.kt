@@ -1,6 +1,6 @@
 package com.example.test.songHandler.songLoader
 
-import com.example.test.config
+import com.example.test.config.Config
 import com.example.test.logger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -24,9 +24,9 @@ private fun isSong(songPath: File): Boolean {
         return false
     }
     return when (songPath.extension.lowercase(Locale.getDefault())) {
-        "mp3", "flac", "m3u" -> true
-        "jpg", "cue", "txt", "tif", "log", "jpeg", "docx" -> false
-        else -> throw java.lang.Exception("Unknown extension:${songPath.extension} on song${songPath.absolutePath}")
+        "mp3", "flac" -> true
+        "m3u", "jpg", "cue", "txt", "tif", "log", "jpeg", "docx", "m4a" -> false // TODO maybe m3u is playing
+        else -> false.also { logger.error { "Unknown extension:${songPath.extension} on song${songPath.absolutePath}" } }
     }
 }
 
@@ -57,24 +57,28 @@ private suspend fun getListOfSongs(directory: File, depthParallelize: Int = 2): 
 }
 
 class SongLoaderBuffered : SongLoader {
-    private val bufferFolder = File(config.bufferFolder)
+    private lateinit var bufferFolder: File
     private val buffer = Buffer()
-    private val favoritesFolder = File(config.favoritesFolder)
+    private lateinit var favoritesFolder: File
 
-    init {
-        logger.debug { "Init part" }
+    private fun initValues(config: Config) {
+        logger.debug { "SongLoaderBuffered: Init part" }
+        bufferFolder = File(config.bufferFolder)
+        favoritesFolder = File(config.favoritesFolder)
         clearFolder(bufferFolder)
         favoritesFolder.mkdirs()
     }
 
-    constructor(musicFolder: File, songs: List<File>) : super(musicFolder, songs) {
+    constructor(config: Config, songs: List<File>) : super(config, songs) {
         logger.debug { "Build songs from list" }
+        initValues(config)
     }
 
-    constructor(musicFolder: File) : super(musicFolder) {
+    constructor(config: Config) : super(config) {
         logger.debug { "Build songs from directory:$musicFolder" }
         songs = runBlocking(Dispatchers.Default) { getListOfSongs(musicFolder) }
         logger.debug { "End build songs from dir, found ${songs.size} songs" }
+        initValues(config)
     }
 
     override suspend fun getNextSong(): File {

@@ -1,6 +1,6 @@
 package com.example.test.songHandler
 
-import com.example.test.config
+import com.example.test.config.Config
 import com.example.test.logger
 import com.example.test.songHandler.songLoader.SongLoader
 import com.example.test.songHandler.songLoader.SongLoaderBuffered
@@ -9,7 +9,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.io.File
 
-class FTPSongsHandler(pathToDir: String) : SongsHandler {
+class FTPSongsHandler(private val config: Config) : SongsHandler {
     private var listOfSongs: List<File> = listOf()
     private val dataFolder = File(config.dataFolder)
     private val playlist = dataFolder.resolve(config.playlistName)
@@ -18,7 +18,7 @@ class FTPSongsHandler(pathToDir: String) : SongsHandler {
 
     init {
         dataFolder.mkdir()
-        var playlistReaded = false
+        var playlistRead = false
         if (playlist.exists()) {
             val lines = playlist.readLines()
             dirPath = lines[0]
@@ -27,19 +27,19 @@ class FTPSongsHandler(pathToDir: String) : SongsHandler {
             listOfSongs = lines.drop(1).map {
                 File(it)
             }
-            songLoader = SongLoaderBuffered(File(dirPath), listOfSongs)
-            playlistReaded = listOfSongs.isNotEmpty()
+            songLoader = SongLoaderBuffered(config, listOfSongs)
+            playlistRead = listOfSongs.isNotEmpty()
         }
-        if (!playlistReaded) {
+        if (!playlistRead) {
             logger.debug { "No playlist was read, starting scanning for songs" }
-            dirPath = pathToDir
+            dirPath = config.pathToMusicFolder
             loadSongFromDir(dirPath)
         }
     }
 
     override fun loadSongFromDir(dirPath: String) {
         this.dirPath = dirPath
-        songLoader = SongLoaderBuffered(File(dirPath))
+        songLoader = SongLoaderBuffered(config)
         this.listOfSongs = songLoader.songs
     }
 
@@ -57,7 +57,7 @@ class FTPSongsHandler(pathToDir: String) : SongsHandler {
     }
 
     @OptIn(DelicateCoroutinesApi::class)
-    override fun addToFavorite() {
+    override fun addToFavourite() {
         GlobalScope.launch {
             songLoader.addToFavorite()
         }

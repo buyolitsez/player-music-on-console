@@ -1,15 +1,12 @@
 package com.example.test.songHandler
 
+import com.example.test.config.Config
 import java.io.File
 
 interface SongsHandler {
     companion object {
-        private val instance = mutableMapOf<String, SongsHandler>()
-        fun getInstance(pathToDir: String): SongsHandler {
-            if (!instance.containsKey(pathToDir)) {
-                instance[pathToDir] = FTPSongsHandler(pathToDir)
-            }
-            return instance[pathToDir]!!
+        fun getInstance(config: Config): SongsHandler {
+            return FTPSongsHandler(config)
         }
     }
 
@@ -22,7 +19,7 @@ interface SongsHandler {
 
     fun deleteCurrentSong()
 
-    fun addToFavorite()
+    fun addToFavourite()
 
     fun close()
 }
