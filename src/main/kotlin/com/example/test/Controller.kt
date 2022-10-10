@@ -24,16 +24,16 @@ class Controller(
     suspend fun executeUserCommand(cmd: UserCommand) {
         logger.debug { "New command detected: ${cmd::class}" }
         when (cmd) {
-            is PlayUserCommand -> {
-                logger.debug { "start play" }
-                songPlayer.play()
-                ui.continuePlaying()
+            is SwitchPlayStatus -> {
+                logger.debug { "switch play" }
+                songPlayer.switchPlayStatus()
+                if (songPlayer.isPlaying) {
+                    ui.continuePlaying()
+                } else {
+                    ui.songPaused()
+                }
             }
-            is PauseUserCommand -> {
-                logger.debug { "pause play" }
-                songPlayer.pause()
-                ui.songPaused()
-            }
+
             is NextUserCommand -> {
                 logger.debug { "next activated" }
                 val newSong = songsHandler.getNextSong()
@@ -42,6 +42,7 @@ class Controller(
                 }
                 ui.songChanged(newSong.absolutePath, songPlayer)
             }
+
             is UpdateUserCommand -> {
                 logger.debug { "Update command detected" }
                 songsHandler.loadSongFromDir(config.pathToMusicFolder)

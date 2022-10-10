@@ -9,8 +9,7 @@ class ScannerCommandHandler() : CommandHandler {
     override fun getUserCommand(): UserCommand {
         return when (scanner.next()) {
             "next", "nx", "n" -> NextUserCommand()
-            "play", "p", "pl" -> PlayUserCommand()
-            "pause", "pa", "ps" -> PauseUserCommand()
+            "p" -> SwitchPlayStatus()
             "update" -> UpdateUserCommand()
             "delete", "dl", "d" -> DeleteCurrentSongUserCommand()
             "volume", "v" -> ChangeVolumeUserCommand(scanner.nextInt())

@@ -7,11 +7,14 @@ import java.io.File
 class SongPlayer() {
     private lateinit var mediaPlayer: MediaPlayer
     private var volume = 30
+    var isPlaying = false
+        private set
 
     /**
      * 	Start/resume playing
      */
     fun play() {
+        isPlaying = true
         mediaPlayer.play()
     }
 
@@ -19,7 +22,16 @@ class SongPlayer() {
      * Pause playing
      */
     fun pause() {
+        isPlaying = false
         mediaPlayer.pause()
+    }
+
+    fun switchPlayStatus() {
+        if (isPlaying) {
+            pause()
+        } else {
+            play()
+        }
     }
 
     /**
