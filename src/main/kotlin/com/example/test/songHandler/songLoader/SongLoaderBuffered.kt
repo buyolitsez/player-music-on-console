@@ -1,5 +1,6 @@
 package com.example.test.songHandler.songLoader
 
+import com.example.test.FileUtils
 import com.example.test.config.Config
 import com.example.test.logger
 import kotlinx.coroutines.*
@@ -11,51 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
 import kotlin.random.nextUInt
 
-private fun clearFolder(folder: File) {
-    if (folder.exists()) {
-        logger.debug { "deleting buffer folder" }
-        assert(folder.deleteRecursively())
-    }
-    assert(folder.mkdir())
-}
-
-private fun isSong(songPath: File): Boolean {
-    if (songPath.isDirectory) {
-        return false
-    }
-    return when (songPath.extension.lowercase(Locale.getDefault())) {
-        "mp3", "flac" -> true
-        "m3u", "jpg", "cue", "txt", "tif", "log", "jpeg", "docx", "m4a" -> false // TODO maybe m3u is playing
-        else -> false.also { logger.error { "Unknown extension:${songPath.extension} on song${songPath.absolutePath}" } }
-    }
-}
-
-private suspend fun getListOfSongs(directory: File, depthParallelize: Int = 2): List<File> = coroutineScope {
-    if (!directory.isDirectory) {
-        logger.debug { "single thread walk(((" }
-        listOf(directory)
-    } else if (depthParallelize <= 0) {
-        directory.walk().toList().filter { isSong(it) }
-    } else {
-        val listJobs = mutableListOf<Deferred<List<File>>>()
-        val totalFiles = mutableListOf<File>()
-        directory.walk().maxDepth(depthParallelize).forEach { file ->
-            val depthDir = directory.absolutePath.count { it == '/' }
-            if (file.isDirectory && file.absolutePath.count { it == '/' } == depthDir + depthParallelize) {
-                listJobs.add(async {
-                    getListOfSongs(file, 0)
-                })
-            } else {
-                if (isSong(file)) {
-                    totalFiles.add(file)
-                }
-            }
-        }
-        totalFiles.addAll(listJobs.awaitAll().flatten())
-        totalFiles
-    }
-}
-
 class SongLoaderBuffered : SongLoader {
     private lateinit var bufferFolder: File
     private val buffer = Buffer()
@@ -65,7 +21,7 @@ class SongLoaderBuffered : SongLoader {
         logger.debug { "SongLoaderBuffered: Init part" }
         bufferFolder = File(config.bufferFolder)
         favoritesFolder = File(config.favoritesFolder)
-        clearFolder(bufferFolder)
+        FileUtils.clearFolder(bufferFolder)
         favoritesFolder.mkdirs()
     }
 
@@ -76,7 +32,7 @@ class SongLoaderBuffered : SongLoader {
 
     constructor(config: Config) : super(config) {
         logger.debug { "Build songs from directory:$musicFolder" }
-        songs = runBlocking(Dispatchers.Default) { getListOfSongs(musicFolder) }
+        songs = runBlocking(Dispatchers.Default) { FileUtils.getListOfSongs(musicFolder) }
         logger.debug { "End build songs from dir, found ${songs.size} songs" }
         initValues(config)
     }
@@ -96,18 +52,12 @@ class SongLoaderBuffered : SongLoader {
         return copied
     }
 
-    /**
-     * exchangeFolder("abc/a.mp3", "abc", "kek") = "kek/a.mp3"
-     */
-    private fun exchangeFolder(song: File, from: File, to: File): File {
-        return to.resolve(song.absolutePath.substringAfter(from.absolutePath).drop(1))
-    }
 
     override suspend fun addToFavorite() {
         val song = buffer.currentSong
         logger.debug { "Add song $song to favorites" }
         require(song != null) { "Song is null!" }
-        val songNewPlace = exchangeFolder(song, musicFolder, favoritesFolder)
+        val songNewPlace = FileUtils.exchangeFolder(song, musicFolder, favoritesFolder)
         if (!songNewPlace.exists()) {
             songNewPlace.mkdirs()
             songNewPlace.delete()
@@ -131,7 +81,7 @@ class SongLoaderBuffered : SongLoader {
 						logger.debug { "Song $res not exists, skip"}
 						continue;
 					}
-                    val newFile = exchangeFolder(res, musicFolder, bufferFolder)
+                    val newFile = FileUtils.exchangeFolder(res, musicFolder, bufferFolder)
                     newFile.mkdirs()
                     newFile.delete()
                     songsInChannel.incrementAndGet()
@@ -141,7 +91,7 @@ class SongLoaderBuffered : SongLoader {
                 }
             }
             val newSong = songsChannel.receive()
-            currentSong = exchangeFolder(newSong, bufferFolder, musicFolder)
+            currentSong = FileUtils.exchangeFolder(newSong, bufferFolder, musicFolder)
             deleteSong(newSong)
             songsInChannel.decrementAndGet()
             return newSong
