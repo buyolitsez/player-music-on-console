@@ -1,0 +1,11 @@
+{
+  "pathToMusicFolder": "/home/buyolitsez/Music/101 Classics",
+  "mountFTP": false,
+  "mountFolder": "/home/buyolitsez/Music/server",
+  "username": "buyolitsez-windows",
+  "password": "buyolitsez",
+  "dataFolder": "data",
+  "bufferFolder": "/tmp/pmoc-classic/",
+  "favoritesFolder": "/home/buyolitsez/Music/favories-classic",
+  "playlistName": "playlist2"
+}
