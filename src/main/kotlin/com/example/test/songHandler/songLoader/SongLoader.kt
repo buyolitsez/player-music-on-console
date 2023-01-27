@@ -17,6 +17,7 @@ abstract class SongLoader {
 
 
     abstract suspend fun getNextSong(): File
+    abstract suspend fun addToFavorite()
     abstract fun close()
     abstract fun deleteCurrentSong()
 }

@@ -1,14 +1,18 @@
 package com.example.test.songHandler
 
+import com.example.test.config
 import com.example.test.logger
 import com.example.test.songHandler.songLoader.SongLoader
 import com.example.test.songHandler.songLoader.SongLoaderBuffered
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.File
 
 class FTPSongsHandler(pathToDir: String) : SongsHandler {
     private var listOfSongs: List<File> = listOf()
-    private val dataFolder = File("data/")
-    private val playlist = dataFolder.resolve("playlist")
+    private val dataFolder = File(config.dataFolder)
+    private val playlist = dataFolder.resolve(config.playlistName)
     private lateinit var songLoader: SongLoader
     private lateinit var dirPath: String
 
@@ -40,11 +44,23 @@ class FTPSongsHandler(pathToDir: String) : SongsHandler {
     }
 
     override suspend fun getNextSong(): File {
-        return songLoader.getNextSong()
+        var nextSong = songLoader.getNextSong()
+        while (!nextSong.exists()) {
+            logger.warn { "Tried to load non-existing song $nextSong" }
+            nextSong = songLoader.getNextSong()
+        }
+        return nextSong
     }
 
     override fun deleteCurrentSong() {
         songLoader.deleteCurrentSong()
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    override fun addToFavorite() {
+        GlobalScope.launch {
+            songLoader.addToFavorite()
+        }
     }
 
     override fun close() {
@@ -54,9 +70,9 @@ class FTPSongsHandler(pathToDir: String) : SongsHandler {
         val builder = StringBuilder()
         builder.append("$dirPath\n")
         listOfSongs.forEach {
-            logger.debug { "Adding song ${it.absolutePath} to playlist" }
             builder.append("${it.absolutePath}\n")
         }
+        logger.debug { "Saved ${listOfSongs.size} songs" }
         playlist.writeText(builder.toString())
     }
 }

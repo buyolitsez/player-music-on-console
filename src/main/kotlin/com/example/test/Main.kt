@@ -3,6 +3,9 @@ package com.example.test
 
 import com.example.test.UI.ConsoleUI
 import com.example.test.UI.UI
+import com.example.test.config.Config
+import com.example.test.config.ConfigReader
+import com.example.test.songHandler.FTPSongsHandler
 import com.example.test.songHandler.SongsHandler
 import com.jakewharton.mosaic.Text
 import com.jakewharton.mosaic.runMosaic
@@ -12,6 +15,8 @@ import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
+import java.io.File
+import kotlin.system.exitProcess
 
 lateinit var globalMediaPlayer: MediaPlayer
 
@@ -39,66 +44,86 @@ suspend fun genNew(songsHandler: SongsHandler): MediaPlayer {
     return mediaPlayer
 }
 
-fun main() = runMosaic {
-    var count = 0
+lateinit var config: Config
 
-    setContent {
-        Text("The count is: $count")
+@OptIn(DelicateCoroutinesApi::class)
+fun main() {
+    val pathToConfig = "data/config.json"
+    config = ConfigReader(pathToConfig).read()
+    logger.debug { "Config: $config" }
+
+    if (config.mountFTP) { // TODO not working
+        File(config.mountFolder).mkdirs()
+        Runtime.getRuntime()
+            .exec("umount ${config.mountFolder}")
+        logger.info { "mounting folder ${config.pathToMusicFolder}" }
+        Runtime.getRuntime()
+            .exec("curlftpfs ${config.pathToMusicFolder} ${config.mountFolder} -o user=${config.username}:${config.password}")
+        config.pathToMusicFolder = config.mountFolder
     }
 
-    for (i in 1..20) {
-        delay(250)
-        count = i
+    ui.init(config.pathToMusicFolder)
+    val songsHandler: SongsHandler = FTPSongsHandler(config.pathToMusicFolder)
+
+    Runtime.getRuntime().addShutdownHook(Thread(Runnable {
+        logger.debug { "Shutdown" }
+        songsHandler.close()
+    }))
+    Platform.startup {
+        GlobalScope.launch {
+            logger.debug { "player started!" }
+            var cmd: UserCommand = NextUserCommand()
+            while (true) {
+                if (cmd is PlayUserCommand) {
+                    logger.debug { "start play" }
+                    globalMediaPlayer.play()
+                    ui.continuePlaying()
+                } else if (cmd is PauseUserCommand) {
+                    logger.debug { "pause play" }
+                    globalMediaPlayer.pause()
+                    ui.songPaused()
+                } else if (cmd is NextUserCommand) {
+                    logger.debug { "next activated" }
+                    tryToStop()
+                    globalMediaPlayer = genNew(songsHandler)
+                    globalMediaPlayer.play()
+                } else if (cmd is UpdateUserCommand) {
+                    songsHandler.loadSongFromDir(config.pathToMusicFolder)
+                } else if (cmd is DeleteCurrentSongUserCommand) {
+                    logger.debug { "Delete command detected" }
+                    tryToStop()
+                    songsHandler.deleteCurrentSong()
+                    globalMediaPlayer = genNew(songsHandler)
+                    globalMediaPlayer.play()
+                } else if (cmd is ChangeVolumeUserCommand) {
+                    val changeVolumeUserCommand = cmd
+                    logger.debug { "Changing volume to ${changeVolumeUserCommand.newVolume}" }
+                    globalMediaPlayer.volume = changeVolumeUserCommand.newVolume / 100.0
+                    ui.volumeChanged(changeVolumeUserCommand.newVolume)
+                } else if (cmd is AddToFavoriteUserCommand) {
+                    songsHandler.addToFavorite()
+                } else if (cmd is ExitUserCommand) {
+                    tryToStop()
+                    exitProcess(0)
+                } else {
+                    assert(cmd is UnknownUserCommand)
+                    logger.debug { "Unknown command" }
+                }
+                cmd = ui.getUserCmd()
+            }
+        }
     }
 }
 
-//@OptIn(DelicateCoroutinesApi::class)
-//fun main() {
-//    Platform.startup {
-////        val dirPath = "/run/user/1000/gvfs/ftp:host=164.92.142.157/additional/Music"
-//        val dirPath = "/home/buyolitsez/Music"
-//        ui.init(dirPath)
-//        val songsHandler: SongsHandler = FTPSongsHandler(dirPath)
-//        GlobalScope.launch {
-//            logger.debug { "player started!" }
-//            var cmd: UserCommand = NextUserCommand()
-//            while (true) {
-//                if (cmd is PlayUserCommand) {
-//                    logger.debug { "start play" }
-//                    globalMediaPlayer.play()
-//                    ui.continuePlaying()
-//                } else if (cmd is PauseUserCommand) {
-//                    logger.debug { "pause play" }
-//                    globalMediaPlayer.pause()
-//                    ui.songPaused()
-//                } else if (cmd is NextUserCommand) {
-//                    logger.debug { "next activated" }
-//                    tryToStop()
-//                    globalMediaPlayer = genNew(songsHandler)
-//                    globalMediaPlayer.play()
-//                } else if (cmd is UpdateUserCommand) {
-//                    songsHandler.loadSongFromDir(dirPath)
-//                } else if (cmd is DeleteCurrentSongUserCommand) {
-//                    logger.debug { "Delete command detected" }
-//                    tryToStop()
-//                    songsHandler.deleteCurrentSong()
-//                    globalMediaPlayer = genNew(songsHandler)
-//                    globalMediaPlayer.play()
-//                } else if (cmd is ChangeVolumeUserCommand) {
-//                    val changeVolumeUserCommand = cmd
-//                    logger.debug { "Changing volume to ${changeVolumeUserCommand.newVolume}" }
-//                    globalMediaPlayer.volume = changeVolumeUserCommand.newVolume / 100.0
-//                    ui.volumeChanged(changeVolumeUserCommand.newVolume)
-//                } else if (cmd is ExitUserCommand) {
-//                    tryToStop()
-//                    break
-//                } else {
-//                    assert(cmd is UnknownUserCommand)
-//                    logger.debug { "Unknown command" }
-//                }
-//                cmd = ui.getUserCmd()
-//            }
-//            songsHandler.close()
-//        }
+//fun main() = runMosaic {
+//    var count = 0
+//
+//    setContent {
+//        Text("The count is: $count")
+//    }
+//
+//    for (i in 1..20) {
+//        delay(250)
+//        count = i
 //    }
 //}

@@ -40,6 +40,7 @@ class ConsoleUI : UI {
             "update" -> UpdateUserCommand()
             "delete" -> DeleteCurrentSongUserCommand()
             "volume" -> ChangeVolumeUserCommand(scanner.nextInt())
+            "add" -> AddToFavoriteUserCommand()
             "exit" -> ExitUserCommand()
             else -> UnknownUserCommand()
         }

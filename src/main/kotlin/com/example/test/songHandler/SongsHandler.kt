@@ -8,5 +8,7 @@ interface SongsHandler {
 
     fun deleteCurrentSong()
 
+    fun addToFavorite()
+
     fun close()
 }
