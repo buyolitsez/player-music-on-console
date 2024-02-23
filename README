@@ -1,9 +1,5 @@
 ## PMOC
 
-# Build
-
-with intelij :)
-
 # Run
 
 `java -jar out/artifacts/test_jar/test.jar`
